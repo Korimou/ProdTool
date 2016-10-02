@@ -1,0 +1,9 @@
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\bin\Debug\ProductivityTool.exe.config
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\bin\Debug\ProductivityTool.exe
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\bin\Debug\ProductivityTool.pdb
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\obj\Debug\ProductivityTool.csprojResolveAssemblyReference.cache
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\obj\Debug\ProductivityTool.Form1.resources
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\obj\Debug\ProductivityTool.Properties.Resources.resources
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\obj\Debug\ProductivityTool.csproj.GenerateResource.Cache
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\obj\Debug\ProductivityTool.exe
+c:\users\jon\documents\visual studio 2015\Projects\ProductivityTool\ProductivityTool\obj\Debug\ProductivityTool.pdb

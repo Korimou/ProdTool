@@ -1,0 +1,73 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+namespace ProductivityTool
+{
+    internal class CursorMonitor
+    {
+        // add p/invokes to this class so it can call the necessary windows functions.
+        private List<CursorRule> m_Rules = new List<CursorRule>();
+
+        private bool m_IsRunning = false;
+        private bool m_ContinueRunning = true;
+        Thread m_MonitorThread;
+
+        public IEnumerable<CursorRule> Rules
+        {
+            get
+            {
+                if (m_IsRunning)
+                    throw new InvalidOperationException("Can't touch rules when monitoring.");
+
+                return m_Rules;
+            }
+            set
+            {
+                if (m_IsRunning)
+                    throw new InvalidOperationException("Can't touch rules when monitoring.");
+
+                m_Rules.Clear();
+                m_Rules.AddRange(value);
+            }
+        }
+
+        public void BeginMonitoring()
+        {
+            if (m_Rules == null || m_Rules.Count == 0) return;
+
+            if(m_MonitorThread != null)
+            {
+                if (m_IsRunning || m_MonitorThread.ThreadState == ThreadState.Running)
+                    StopMonitoring();
+            }
+
+            m_MonitorThread = new Thread(DoMonitor);
+            m_MonitorThread.Start(); // poss race condition between start and actually starting. take care.
+        }
+
+        public void StopMonitoring()
+        {
+            if(m_IsRunning)
+            {
+                m_ContinueRunning = false;
+
+            }
+        }
+
+        private void DoMonitor()
+        {
+            m_IsRunning = true;
+
+            while(m_ContinueRunning)
+            {
+
+            }
+
+            m_IsRunning = false;
+        }
+
+
+    }
+}

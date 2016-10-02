@@ -1,0 +1,180 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+
+namespace ProductivityTool
+{
+    internal class CursorMonitor
+    {
+        private List<CursorRule> m_Rules = new List<CursorRule>();
+
+        private bool m_IsRunning = false;
+        private bool m_ContinueRunning = true;
+        Thread m_MonitorThread;
+
+        public IEnumerable<CursorRule> Rules
+        {
+            get
+            {
+                if (m_IsRunning)
+                    throw new InvalidOperationException("Can't touch rules when monitoring.");
+
+                return m_Rules;
+            }
+            set
+            {
+                if (m_IsRunning)
+                    throw new InvalidOperationException("Can't touch rules when monitoring.");
+
+                m_Rules.Clear();
+                m_Rules.AddRange(value);
+            }
+        }
+
+        public void BeginMonitoring()
+        {
+            if (m_Rules == null || m_Rules.Count == 0) return;
+
+            if(m_MonitorThread != null)
+            {
+                if (m_IsRunning || m_MonitorThread.ThreadState == System.Threading.ThreadState.Running)
+                    StopMonitoring();
+            }
+
+            m_MonitorThread = new Thread(DoMonitor);
+            m_MonitorThread.Start(); // poss race condition between start and actually starting, rules can be changed. take care.
+        }
+
+        public void StopMonitoring()
+        {
+            if(m_IsRunning)
+            {
+                m_ContinueRunning = false;
+                m_MonitorThread.Join();
+            }
+        }
+
+        private void DoMonitor()
+        {
+            m_IsRunning = true;
+
+            while(m_ContinueRunning)
+            {
+                WindowInformation winInfo = GetWindowInformation(); // TODO refactor this. Needs to take into account the 2 types of window activation!
+
+                // now we have all of the information we need, we can evaluate the rules.
+                
+                // Update the cursor etc.
+            }
+
+            m_IsRunning = false;
+        }
+
+        private WindowInformation GetWindowInformation()
+        {
+            WindowInformation windowInformation = new WindowInformation();
+
+            Point mouseLocation = new Point();
+            if (!GetCursorPos(out mouseLocation)) return null;
+
+            IntPtr hWnd = WindowFromPoint(mouseLocation);
+            if (hWnd == IntPtr.Zero) return null;
+
+            StringBuilder windowTitle = new StringBuilder();
+            windowTitle.Length = 255;
+            int numCharsInTitle = GetWindowText(hWnd, windowTitle, 255); // just in case we need it, cache the value
+
+            List<string> parentWindowTitles = new List<string>();
+            IntPtr parent = GetAncestor(hWnd, GetAncestorFlags.GetParent);
+            while (parent != IntPtr.Zero)
+            {
+                StringBuilder parentTitle = new StringBuilder();
+                parentTitle.Length = 255;
+                GetWindowText(parent, parentTitle, 255);
+                parentWindowTitles.Add(parentTitle.ToString());
+
+                parent = GetAncestor(parent, GetAncestorFlags.GetParent);
+            }
+
+            windowInformation.WindowTitle = windowTitle.ToString();
+            windowInformation.ProcessPath = GetProcessNameFromWindow(hWnd);
+            windowInformation.ParentWindowTexts = parentWindowTitles.ToArray();
+
+            return windowInformation;
+        }
+
+        private string GetProcessNameFromWindow(IntPtr hWnd)
+        {
+            uint pid;
+            GetWindowThreadProcessId(hWnd, out pid);
+            IntPtr processHandle = OpenProcess(ProcessAccessFlags.QueryInformation, false, (int)pid);
+            StringBuilder processName = new StringBuilder();
+            processName.Length = 255;
+            GetProcessImageFileName(processHandle, processName, 255);
+
+            return processName.ToString();
+        }
+
+        // This is ported from C++ so some of this may be doable in C# but fuck it.
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out Point lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr WindowFromPoint(Point lpPoint);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr OpenProcess(ProcessAccessFlags processAccess, bool bInheritHandle, int processId);
+
+        [DllImport("psapi.dll")]
+        static extern uint GetProcessImageFileName(IntPtr hProcess, [Out] StringBuilder lpImageFileName, [In] [MarshalAs(UnmanagedType.U4)] int nSize);
+
+        [DllImport("user32.dll", ExactSpelling = true)]
+        static extern IntPtr GetAncestor(IntPtr hwnd, GetAncestorFlags flags);
+
+        [Flags]
+        public enum ProcessAccessFlags : uint
+        {
+            All = 0x001F0FFF,
+            Terminate = 0x00000001,
+            CreateThread = 0x00000002,
+            VirtualMemoryOperation = 0x00000008,
+            VirtualMemoryRead = 0x00000010,
+            VirtualMemoryWrite = 0x00000020,
+            DuplicateHandle = 0x00000040,
+            CreateProcess = 0x000000080,
+            SetQuota = 0x00000100,
+            SetInformation = 0x00000200,
+            QueryInformation = 0x00000400,
+            QueryLimitedInformation = 0x00001000,
+            Synchronize = 0x00100000
+        }
+
+        enum GetAncestorFlags
+        {
+            /// <summary>
+            /// Retrieves the parent window. This does not include the owner, as it does with the GetParent function.
+            /// </summary>
+            GetParent = 1,
+            /// <summary>
+            /// Retrieves the root window by walking the chain of parent windows.
+            /// </summary>
+            GetRoot = 2,
+            /// <summary>
+            /// Retrieves the owned root window by walking the chain of parent and owner windows returned by GetParent. 
+            /// </summary>
+            GetRootOwner = 3
+        }
+
+    }
+}
